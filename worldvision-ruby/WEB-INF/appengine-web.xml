@@ -9,5 +9,9 @@
   </resource-files>
   <ssl-enabled>true</ssl-enabled>
   <precompilation-enabled>true</precompilation-enabled>
+  <threadsafe>false</threadsafe>
   <sessions-enabled>true</sessions-enabled>
+  <inbound-services>
+  </inbound-services>
+  <warmup-requests-enabled>true</warmup-requests-enabled>
 </appengine-web-app>
