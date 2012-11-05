@@ -1,0 +1,31 @@
+/* Because the selects are too many in tables. Override bootstrap */
+.navbar select, table select {
+  width: auto;
+}
+.navbar .nav > li > input {
+  margin: 10px 2px;
+}
+.navbar .nav > li > select {
+  margin: 5px 2px;
+}
+
+table.table form {
+  display: inline;
+}
+
+.navbar .brand {
+  color: orange;
+}
+
+.navbar div.pull-right {
+  margin-top: 6px;
+}
+
+.navbar a.btn#logout {
+  margin-top: -3px;
+  margin-left: 3px;
+}
+
+table.table tbody tr td.continent {
+  background-color: silver;
+}
