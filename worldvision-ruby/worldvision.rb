@@ -107,6 +107,15 @@ class Template
   property :tempate_url, String
 end
 
+class News
+  include DataMapper::Resource
+  property :id, Serial
+  property :created_date, Date
+  property :title, String
+  property :content, String
+  property :status, String
+end
+
 class Date
   def to_s
     strftime('%m/%d/%Y')
@@ -784,14 +793,14 @@ get '/volunteer' do
     end
   end
 
-  @claim_letters = Letter.all(:due_date.not => nil, :order => [ :due_date.desc ])
-  @voulenteer_letters = Array.new
-  voulenteer_id = current_user[:voulenteer_id]
-  @claim_letters.each do |letter|
-    if (letter.voulenteer_id == voulenteer_id)
-      @voulenteer_letters.push(letter)
-    end
-  end
+  @voulenteer_letters = Letter.all(:due_date.not => nil, :order => [ :due_date.desc ], :voulenteer_account => current_user[:account])
+#  @voulenteer_letters = Array.new
+#  voulenteer_id = current_user[:voulenteer_id]
+#  @claim_letters.each do |letter|
+#    if (letter.voulenteer_id == voulenteer_id)
+#      @voulenteer_letters.push(letter)
+#    end
+#  end
 
 
   # paging
@@ -831,6 +840,11 @@ get '/volunteer' do
   @account_id = current_user[:id]
   logger.info("account_id:" + @account_id.to_s)
   get_template
+  
+  @latest5news = News.all(:status => 'online', :order => [:created_date.desc], :limit => 5)
+  if (@latest5news.length > 5)
+    @latest5news = @latest5news[0, 4]
+  end   
 
   erb :voulenteer_index
 end
@@ -878,6 +892,13 @@ get '/volunteer/noun' do
   erb :vou_noun
 end
 
+get '/show_all_news' do
+  get_template
+  @news = News.all(:status => 'online', :order => [:created_date.desc])
+    
+  erb :vou_all_news
+end
+
 post '/claim_letter' do
   voulenteer!
   id = params[:id]
@@ -887,17 +908,24 @@ post '/claim_letter' do
       letter.voulenteer_id = current_user[:voulenteer_id]
       letter.voulenteer_account = current_user[:account]
       letter.voulenteer_name = current_user[:name]
-      letter.claim_date = Date.today
+      now = Time.now   
+      localtime = now + 28000 
+      logger.info(localtime)
+      today = Date.parse(localtime.strftime('%Y/%m/%d'))
+      
+#       
+#      now = DateTime.parse(time.to_s)
+      letter.claim_date = today
       
       # eng2chi letters
       if (letter.return_days.nil?)
-        letter.due_date = Date.today + 7
-        letter.due_date_3 = Date.today + 10
+        letter.due_date = today + 7
+        letter.due_date_3 = today + 10
       #if return days, chi2eng letters 
       else
         return_days = (letter.return_days - 1)
-        letter.due_date = Date.today + return_days
-        letter.due_date_3 = Date.today + return_days + 3
+        letter.due_date = today + return_days
+        letter.due_date_3 = today + return_days + 3
       end
       letter.status="claimed"
       letter.save
@@ -973,7 +1001,7 @@ post '/return_letter' do
     letter.save
 
     log = VoulenteerLog.new
-    log.voulenteer_id = current_user[:voulenteer_id]
+    log.voulenteer_id = current_user[:account]
     log.voulenteer_name = current_user[:name]
     log.return_date = Date.today
     log.claim_date = claim_date
@@ -985,24 +1013,97 @@ post '/return_letter' do
     log.save
 
     fetcher = URLFetchServiceFactory.getURLFetchService
-    url_for_emp = URL.new("http://www.worldvision-tw.appspot.com/queue_email?mailId=8&email=" + letter.employee_id + "&id=" + id.to_s)
+    url_for_emp = URL.new("http://www.worldvision-tw.appspot.com/queue_email?mailId=8&email=" + letter.employee_id + "&id=" + id.to_s + "&volunteerId=" + current_user[:voulenteer_id])
     fetcher.fetchAsync(url_for_emp)
   end
   redirect '/volunteer'
 end
 
+post '/create_news' do
+  protected!
+  
+  news = News.new
+  news.title = params[:title]
+  news.content = params[:content]
+  news.status = "offline"
+  news.save
+  
+  redirect '/admin_news_index'
+end
+
+post '/update_news' do
+  protected!
+  
+  id = params[:id]
+  
+  if (id)
+    news = News.get(id)
+    if (params[:title])
+      news.title = params[:title]
+    end
+    if (params[:content])
+      news.content = params[:content]
+    end
+    if (params[:status])
+      if (news.created_date == nil)
+          news.created_date = Date.today
+      end
+      news.status = params[:status]
+    end
+    news.save
+  end
+  
+  redirect '/admin_news_index'
+end
+
+post '/delete_news' do
+  protected!
+  
+  id = params[:id]
+    
+  if (id)
+    news = News.get(id)
+    
+    news.destroy
+  end
+  
+  redirect '/admin_news_index'
+end
+
+get '/admin_news_index' do
+  protected!
+  
+  @news = News.all
+  
+  erb :admin_news_index
+end
+
+get '/preview_news' do
+    
+  id = params[:id]
+  @news = nil  
+  if (id)
+    news = News.get(id)
+    @news = news
+  end
+  
+  erb :admin_news_preview
+end
+
 get '/migrate' do
-  letters = Letter.all
+  letters = Letter.all(:return_days => nil)
   letters.each do |letter|
-    if (letter.re_upload == nil)
-      letter.re_upload = false
+    if (letter.return_days == nil)
+      letter.return_days = 0
       letter.save
     end
   end
   redirect '/admin'
 end
 
-get '/test2' do
+get '/is_weekly_email' do
+  @account = Account.first(:account => params[:email])
+  
   erb :test
 end
 
