@@ -358,6 +358,7 @@ end
 
 get '/employee/country' do
   employee!
+  @trans_type = 'country'
   @countries = Country.all
   @template = Template.first
   @url = get_upload_url()
@@ -608,18 +609,30 @@ get '/employee' do
   letters = get_letters
   @letters = Array.new
   @return_letters = Array.new
+  @emergent_letters = Array.new
+  @claimed_letters = Array.new
+  @unclaimed_letters = Array.new
   
   if (current_user[:account] == 'srdvs@worldvision.org.tw')
     @letters = letters.all(:trans_type=> @trans_type, :status.in => ['unclaimed', 'emergent', 'claimed'], :order => [ :create_date.desc ])
     @return_letters = letters.all(:trans_type=> @trans_type, :status => 'returned', :order => [ :return_date.desc ])
+    @emergent_letters = letters.all(:trans_type=> @trans_type, :status => 'emergent', :order => [ :create_date.desc ])
+    @claimed_letters = letters.all(:trans_type=> @trans_type, :status => 'claimed', :order => [ :create_date.desc ])
+    @unclaimed_letters = letters.all(:trans_type=> @trans_type, :status => 'unclaimed', :order => [ :create_date.desc ])
   else
     @letters = letters.all(:employee_id=> current_user[:account].to_s, :status.in => ['unclaimed', 'emergent', 'claimed'], :trans_type=> @trans_type, :order => [ :create_date.desc ])
     @return_letters = letters.all(:employee_id=> current_user[:account].to_s, :status => 'returned', :trans_type=> @trans_type, :order => [ :return_date.desc ])
+    @emergent_letters = letters.all(:employee_id=> current_user[:account].to_s, :status => 'emergent', :trans_type=> @trans_type, :order => [ :create_date.desc ])
+    @unclaimed_letters = letters.all(:employee_id=> current_user[:account].to_s, :status => 'unclaimed', :trans_type=> @trans_type, :order => [ :create_date.desc ])
+    @claimed_letters = letters.all(:employee_id=> current_user[:account].to_s, :status => 'claimed', :trans_type=> @trans_type, :order => [ :create_date.desc ])
   end
 
 # @todo investigate why count does not work
   @count = @letters.size
   @return_letters_count = @return_letters.size
+  @emergent_letters_count = @emergent_letters.size
+  @claimed_letters_count = @claimed_letters.size
+  @unclaimed_letters_count = @unclaimed_letters.size
   logger.info("count:" + @count.to_s)
   logger.info("r_count:" + @return_letters_count.to_s)
 
@@ -793,15 +806,21 @@ get '/volunteer' do
     end
   end
 
-  @voulenteer_letters = Letter.all(:due_date.not => nil, :order => [ :due_date.desc ], :voulenteer_account => current_user[:account])
-#  @voulenteer_letters = Array.new
-#  voulenteer_id = current_user[:voulenteer_id]
-#  @claim_letters.each do |letter|
-#    if (letter.voulenteer_id == voulenteer_id)
-#      @voulenteer_letters.push(letter)
-#    end
-#  end
+  @claim_letters = Letter.all(:due_date.not => nil, :order => [ :due_date.desc ])
+  @voulenteer_letters = Array.new
+  voulenteer_id = current_user[:voulenteer_id]
+  @claim_letters.each do |letter|
+    if (letter.voulenteer_id == voulenteer_id)
+      @voulenteer_letters.push(letter)
+    end
+  end
 
+  # counting
+  @recieved_count = @voulenteer_letters.length
+  @letters_count = @letters.length
+  @emergent_count = @emergent_letters.length
+  @hand_writing_count = @hand_writing_letters.length
+  @typing_count = @typing_letters.length
 
   # paging
   @pages = get_paginator(@letters)
@@ -845,6 +864,8 @@ get '/volunteer' do
   if (@latest5news.length > 5)
     @latest5news = @latest5news[0, 4]
   end   
+  
+  @news = News.all(:status => 'online', :order => [:created_date.desc])
 
   erb :voulenteer_index
 end
@@ -908,24 +929,21 @@ post '/claim_letter' do
       letter.voulenteer_id = current_user[:voulenteer_id]
       letter.voulenteer_account = current_user[:account]
       letter.voulenteer_name = current_user[:name]
-      now = Time.now   
-      localtime = now + 28000 
-      logger.info(localtime)
-      today = Date.parse(localtime.strftime('%Y/%m/%d'))
-      
+#      time = Time.new 
+#      time.localtime("+08:00") 
 #       
 #      now = DateTime.parse(time.to_s)
-      letter.claim_date = today
+      letter.claim_date = Date.today
       
       # eng2chi letters
       if (letter.return_days.nil?)
-        letter.due_date = today + 7
-        letter.due_date_3 = today + 10
+        letter.due_date = Date.today + 7
+        letter.due_date_3 = Date.today + 10
       #if return days, chi2eng letters 
       else
         return_days = (letter.return_days - 1)
-        letter.due_date = today + return_days
-        letter.due_date_3 = today + return_days + 3
+        letter.due_date = Date.today + return_days
+        letter.due_date_3 = Date.today + return_days + 3
       end
       letter.status="claimed"
       letter.save

@@ -33,10 +33,10 @@ function markSelected(target, value){
     $(target).children().each(function(){
         var attr_value = $(this).attr("name");
 		if (value == attr_value){
-      $(this).parent().addClass('active');
+			$(this).attr("style", "font-weight: bold; color: #EB8F00;text-decoration:none");
 		}
 		else
-      $(this).parent().removeClass('active');
+			$(this).removeAttr('style');
 	});
 }
 var STOP_PROPAGATION = false;

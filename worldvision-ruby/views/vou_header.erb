@@ -1,22 +1,25 @@
-<div class="navbar navbar-inverse navbar-fixed-top">
+<div class="navbar">
   <div class="navbar-inner">
     <div class="container-fluid">
-      <a data-target=".nav-collapse" data-toggle="collapse" class="btn btn-navbar">
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-      </a>
-      <a href="#" class="brand">NEX-T</a>
-      <div class="nav-collapse collapse">
-        <p class="navbar-text pull-right">
-        歡迎, <a class="navbar-link" href="#"><%= current_user.account %></a><a href="/logout">登出</a>
-        </p>
+      <a href="/volunteer" class="brand"><u>NEX-T 志工翻譯網頁</u></a>
+      <div class="nav-collapse">
+        <div class="nav pull-right">
+          <span>歡迎, <%= current_user.account %></span><a id="logout" href="/logout" class="btn">登出</a>
+        </div>
         <ul class="nav">
-          <li class="active"><a href="#">Home</a></li>
-          <li><a href="#about">About</a></li>
-          <li><a href="#contact">Contact</a></li>
+          <% if @account_trans_type && @account_trans_type == 'both' || @account_trans_type =='chi' %>
+            <li class="<%= @trans_type == 'eng' ? '':'active' %>">
+            <a href="/volunteer?type=chi" class="letter_type_button" name="chi">中翻英</a>
+            </li>
+          <% end %>
+          <% if @account_trans_type && @account_trans_type == 'both' || @account_trans_type =='eng' %>
+            <li class="<%= @trans_type == 'chi' ? '': 'active' %>">
+            <a href="/volunteer?type=eng" class="letter_type_button" name="eng">英翻中</a>
+            </li>
+          <% end %>
         </ul>
       </div><!--/.nav-collapse -->
     </div>
   </div>
+  <h5 class="pull-right">NEXUS Translation -- connection between sponsors and children</h5>
 </div>
